@@ -1,0 +1,264 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum MemberRole {
+  OWNER
+  MEMBER
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  SAVING
+}
+
+enum TransactionNature {
+  FIXED
+  VARIABLE
+  EMERGENCY
+  SAVING
+}
+
+enum PaymentMethod {
+  CASH
+  MPESA
+  EMOLA
+  BANK
+  CARD
+}
+
+enum ExpenseStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum SavingsGoalType {
+  EMERGENCY_FUND
+  GENERAL_SAVINGS
+  INVESTMENT
+  FAMILY_GOAL
+}
+
+enum SavingsMovementType {
+  CONTRIBUTION
+  WITHDRAWAL
+}
+
+enum ItemStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id            String            @id @db.Uuid
+  email         String            @unique
+  name          String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  memberships   HouseholdMember[]
+  transactions  Transaction[]     @relation("ResponsibleTransactions")
+  reminders     Reminder[]        @relation("ReminderAssignee")
+  shoppingItems ShoppingItem[]    @relation("ShoppingAssignee")
+}
+
+model Household {
+  id            String            @id @default(uuid()) @db.Uuid
+  name          String
+  inviteCode    String            @unique
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  members       HouseholdMember[]
+  categories    Category[]
+  transactions  Transaction[]
+  fixedExpenses FixedExpense[]
+  budgets       MonthlyBudget[]
+  savingsGoals  SavingsGoal[]
+  reminders     Reminder[]
+  shoppingItems ShoppingItem[]
+  familyEvents  FamilyEvent[]
+}
+
+model HouseholdMember {
+  id          String     @id @default(uuid()) @db.Uuid
+  householdId String     @db.Uuid
+  userId      String     @db.Uuid
+  role        MemberRole @default(MEMBER)
+  createdAt   DateTime   @default(now())
+  household   Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, userId])
+  @@index([userId])
+}
+
+model Category {
+  id            String             @id @default(uuid()) @db.Uuid
+  householdId   String             @db.Uuid
+  name          String
+  type          TransactionType
+  nature        TransactionNature?
+  color         String             @default("#64748b")
+  isDefault     Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+  household     Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  fixedExpenses FixedExpense[]
+  budgets       MonthlyBudget[]
+
+  @@index([householdId, name, type, nature])
+  @@index([householdId])
+}
+
+model Transaction {
+  id            String            @id @default(uuid()) @db.Uuid
+  householdId   String            @db.Uuid
+  responsibleId String            @db.Uuid
+  categoryId    String            @db.Uuid
+  date          DateTime
+  type          TransactionType
+  subcategory   String?
+  description   String
+  amount        Decimal           @db.Decimal(14, 2)
+  paymentMethod PaymentMethod
+  nature        TransactionNature
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  household     Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  responsible   User              @relation("ResponsibleTransactions", fields: [responsibleId], references: [id])
+  category      Category          @relation(fields: [categoryId], references: [id])
+
+  @@index([householdId, date])
+  @@index([categoryId])
+}
+
+model FixedExpense {
+  id             String        @id @default(uuid()) @db.Uuid
+  householdId    String        @db.Uuid
+  categoryId     String        @db.Uuid
+  name           String
+  expectedAmount Decimal       @db.Decimal(14, 2)
+  dueDay         Int
+  status         ExpenseStatus @default(PENDING)
+  month          DateTime
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  household      Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  category       Category      @relation(fields: [categoryId], references: [id])
+
+  @@index([householdId, month])
+}
+
+model MonthlyBudget {
+  id          String    @id @default(uuid()) @db.Uuid
+  householdId String    @db.Uuid
+  categoryId  String    @db.Uuid
+  month       DateTime
+  amount      Decimal   @db.Decimal(14, 2)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  category    Category  @relation(fields: [categoryId], references: [id])
+
+  @@unique([householdId, categoryId, month])
+  @@index([householdId, month])
+}
+
+model SavingsGoal {
+  id           String            @id @default(uuid()) @db.Uuid
+  householdId  String            @db.Uuid
+  name         String
+  targetAmount Decimal           @db.Decimal(14, 2)
+  deadline     DateTime?
+  type         SavingsGoalType
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  household    Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  movements    SavingsMovement[]
+
+  @@index([householdId])
+}
+
+model SavingsMovement {
+  id        String              @id @default(uuid()) @db.Uuid
+  goalId    String              @db.Uuid
+  type      SavingsMovementType
+  amount    Decimal             @db.Decimal(14, 2)
+  date      DateTime
+  notes     String?
+  createdAt DateTime            @default(now())
+  goal      SavingsGoal         @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, date])
+}
+
+model Reminder {
+  id          String     @id @default(uuid()) @db.Uuid
+  householdId String     @db.Uuid
+  assigneeId  String?    @db.Uuid
+  title       String
+  description String?
+  dueAt       DateTime
+  priority    Priority   @default(MEDIUM)
+  status      ItemStatus @default(PENDING)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  household   Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  assignee    User?      @relation("ReminderAssignee", fields: [assigneeId], references: [id])
+
+  @@index([householdId, dueAt])
+}
+
+model ShoppingItem {
+  id             String     @id @default(uuid()) @db.Uuid
+  householdId    String     @db.Uuid
+  assigneeId     String?    @db.Uuid
+  name           String
+  description    String?
+  store          String?
+  estimatedPrice Decimal?   @db.Decimal(14, 2)
+  neededBy       DateTime?
+  priority       Priority   @default(MEDIUM)
+  status         ItemStatus @default(PENDING)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  household      Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  assignee       User?      @relation("ShoppingAssignee", fields: [assigneeId], references: [id])
+
+  @@index([householdId, neededBy])
+}
+
+model FamilyEvent {
+  id          String     @id @default(uuid()) @db.Uuid
+  householdId String     @db.Uuid
+  title       String
+  description String?
+  location    String?
+  host        String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  reminderAt  DateTime?
+  status      ItemStatus @default(PENDING)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  household   Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId, startsAt])
+}
