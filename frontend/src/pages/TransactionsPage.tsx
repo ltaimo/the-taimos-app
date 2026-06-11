@@ -1,6 +1,6 @@
 import { Download, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
-import { Empty, Modal, MonthFilter, PageHeader, Spinner } from '../components/UI';
+import { Empty, ErrorState, Modal, MonthFilter, PageHeader, Spinner } from '../components/UI';
 import { useApi } from '../hooks';
 import { api, currentMonth, money, shortDate } from '../lib';
 import { Category, Member, Transaction } from '../types';
@@ -10,8 +10,17 @@ export default function TransactionsPage() {
   const [month, setMonth] = useState(currentMonth());
   const [query, setQuery] = useState('');
   const [type, setType] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [responsibleId, setResponsibleId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
   const [editing, setEditing] = useState<Transaction | null | undefined>(undefined);
-  const { data, loading, reload } = useApi<Transaction[]>(`/transactions?month=${month}${type ? `&type=${type}` : ''}`, []);
+  const params = new URLSearchParams({ month });
+  if (type) params.set('type', type);
+  if (categoryId) params.set('categoryId', categoryId);
+  if (responsibleId) params.set('responsibleId', responsibleId);
+  if (paymentMethod) params.set('paymentMethod', paymentMethod);
+  const transactions = useApi<Transaction[]>(`/transactions?${params}`, []);
+  const { data, loading, reload } = transactions;
   const { data: categories } = useApi<Category[]>('/categories', []);
   const { data: members } = useApi<Member[]>('/users', []);
   const rows = useMemo(() => data.filter((x) => `${x.description} ${x.category.name}`.toLowerCase().includes(query.toLowerCase())), [data, query]);
@@ -22,8 +31,8 @@ export default function TransactionsPage() {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + body], { type: 'text/csv' })); a.download = `movimentos-${month}.csv`; a.click();
   }
   return <div className="page"><PageHeader title="Movimentos" subtitle="Todas as entradas, saídas e poupanças da família." actions={<><button className="btn secondary" onClick={exportCsv}><Download /> Exportar CSV</button><button className="btn primary" onClick={() => setEditing(null)}><Plus /> Novo movimento</button></>} />
-    <div className="toolbar"><MonthFilter value={month} onChange={setMonth} /><div className="search"><Search /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Pesquisar movimentos..." /></div><select value={type} onChange={(e) => setType(e.target.value)}><option value="">Todos os tipos</option><option value="INCOME">Entradas</option><option value="EXPENSE">Saídas</option><option value="SAVING">Poupanças</option></select></div>
-    <section className="panel table-panel">{loading ? <Spinner /> : rows.length ? <div className="table-scroll"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Responsável</th><th>Método</th><th>Valor</th><th /></tr></thead><tbody>{rows.map((x) => <tr key={x.id}><td>{shortDate(x.date)}</td><td><strong>{x.description}</strong><small>{labels[x.nature] ?? x.nature}</small></td><td><span className="category-pill"><i style={{ background: x.category.color }} />{x.category.name}</span></td><td>{x.responsible.name}</td><td>{labels[x.paymentMethod]}</td><td className={`amount ${x.type.toLowerCase()}`}>{x.type === 'EXPENSE' ? '- ' : '+ '}{money(x.amount)}</td><td><div className="row-actions"><button onClick={() => setEditing(x)}><Pencil /></button><button onClick={() => remove(x.id)}><Trash2 /></button></div></td></tr>)}</tbody></table></div> : <Empty title="Sem movimentos" text="Adicione o primeiro movimento deste mês." />}</section>
+    <div className="toolbar transaction-filters"><MonthFilter value={month} onChange={setMonth} /><div className="search"><Search /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Pesquisar movimentos..." /></div><select aria-label="Filtrar por tipo" value={type} onChange={(e) => setType(e.target.value)}><option value="">Todos os tipos</option><option value="INCOME">Entradas</option><option value="EXPENSE">Saídas</option><option value="SAVING">Poupanças</option></select><select aria-label="Filtrar por categoria" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}><option value="">Todas as categorias</option>{categories.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select><select aria-label="Filtrar por responsável" value={responsibleId} onChange={(e) => setResponsibleId(e.target.value)}><option value="">Todos os responsáveis</option>{members.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select><select aria-label="Filtrar por pagamento" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option value="">Todos os pagamentos</option>{['CASH','MPESA','EMOLA','BANK','CARD'].map((x) => <option key={x} value={x}>{labels[x]}</option>)}</select></div>
+    <section className="panel table-panel">{transactions.error ? <ErrorState message={transactions.error} onRetry={reload} /> : loading ? <Spinner /> : rows.length ? <div className="table-scroll"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Responsável</th><th>Método</th><th>Valor</th><th /></tr></thead><tbody>{rows.map((x) => <tr key={x.id}><td>{shortDate(x.date)}</td><td><strong>{x.description}</strong><small>{labels[x.nature] ?? x.nature}</small></td><td><span className="category-pill"><i style={{ background: x.category.color }} />{x.category.name}</span></td><td>{x.responsible.name}</td><td>{labels[x.paymentMethod]}</td><td className={`amount ${x.type.toLowerCase()}`}>{x.type === 'EXPENSE' ? '- ' : '+ '}{money(x.amount)}</td><td><div className="row-actions"><button type="button" aria-label={`Editar ${x.description}`} onClick={() => setEditing(x)}><Pencil /></button><button type="button" aria-label={`Apagar ${x.description}`} onClick={() => remove(x.id)}><Trash2 /></button></div></td></tr>)}</tbody></table></div> : <Empty title="Sem movimentos" text="Adicione o primeiro movimento deste mês." />}</section>
     {editing !== undefined && <TransactionModal item={editing} categories={categories} members={members} onClose={() => setEditing(undefined)} onSaved={() => { setEditing(undefined); reload(); }} />}
   </div>;
 }

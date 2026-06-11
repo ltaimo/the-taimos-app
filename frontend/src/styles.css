@@ -47,6 +47,13 @@ body{background:linear-gradient(180deg,#fffafd,#fff6fa)}
   .bottom-nav svg{width:20px}.bottom-nav a.active{color:var(--green)}.bottom-nav a.active svg{fill:#f7d6e4}
   .life-overview{grid-template-columns:1fr 1fr}.life-overview-card:last-child{grid-column:span 2}
 }
+
+/* Accessibility and resilient loading states */
+.icon-btn,.row-actions button,.budget-foot button,.month-filter button{min-width:44px;min-height:44px}
+.error-state{display:flex;align-items:center;gap:14px;background:#fff3f1;border:1px solid #efc5bf;color:#8d302b;border-radius:14px;padding:18px;margin:18px 0}
+.error-state>svg{flex:0 0 auto}.error-state>div{flex:1}.error-state h3{font-size:15px;margin:0 0 4px}.error-state p{font-size:13px;margin:0}
+.transaction-filters{flex-wrap:wrap}.transaction-filters .search{order:0}.transaction-filters>select{min-width:150px}
+@media(max-width:620px){.error-state{align-items:flex-start;flex-wrap:wrap}.error-state .btn{width:100%}.transaction-filters .month-filter{width:100%;flex:none}.transaction-filters .search{order:1}.transaction-filters>select{order:2;min-width:calc(50% - 6px)}}
 @media(max-width:620px){
   .mobile-auth-brand{display:flex}.mobile-auth-brand .brand-mark{width:54px;height:54px;border-radius:16px}.auth-form-wrap{align-items:start;padding-top:38px}.auth-form h2{font-size:26px}
   .life-overview{display:flex;overflow-x:auto;margin-left:-20px;margin-right:-20px;padding:0 20px 8px;scroll-snap-type:x mandatory}.life-overview-card{min-width:78vw;scroll-snap-align:start}.life-overview-card:last-child{grid-column:auto}

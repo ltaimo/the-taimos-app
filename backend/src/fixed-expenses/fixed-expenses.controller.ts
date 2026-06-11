@@ -43,7 +43,9 @@ export class FixedExpensesController {
     });
   }
   private async checkCategory(householdId: string, categoryId: string) {
-    if (!await this.prisma.category.findFirst({ where: { id: categoryId, householdId } }))
+    if (!await this.prisma.category.findFirst({
+      where: { id: categoryId, householdId, type: 'EXPENSE', nature: 'FIXED' },
+    }))
       throw new BadRequestException('Categoria inválida.');
   }
 }

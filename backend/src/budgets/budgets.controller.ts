@@ -30,7 +30,9 @@ export class BudgetsController {
   @Post()
   async upsert(@CurrentUser() user: AuthenticatedUser, @Body() dto: BudgetDto) {
     const householdId = await this.context.getHouseholdId(user.id);
-    if (!await this.prisma.category.findFirst({ where: { id: dto.categoryId, householdId } }))
+    if (!await this.prisma.category.findFirst({
+      where: { id: dto.categoryId, householdId, type: 'EXPENSE' },
+    }))
       throw new BadRequestException('Categoria inválida.');
     const month = new Date(Date.UTC(dto.month.getUTCFullYear(), dto.month.getUTCMonth(), 1));
     return this.prisma.monthlyBudget.upsert({

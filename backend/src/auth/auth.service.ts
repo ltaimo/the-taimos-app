@@ -12,7 +12,13 @@ export class AuthService {
       where: { id },
       include: { memberships: { include: { household: true } } },
     });
-    if (existing?.memberships[0]) return existing;
+    if (existing?.memberships[0]) {
+      return this.prisma.user.update({
+        where: { id },
+        data: { email, name: dto.name },
+        include: { memberships: { include: { household: true } } },
+      });
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.upsert({

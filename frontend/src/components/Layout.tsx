@@ -25,17 +25,17 @@ export default function Layout() {
   return <div className="app-shell">
     <aside className={`sidebar ${open ? 'open' : ''}`}>
       <div className="brand"><img className="brand-mark" src="/app-icon-192.png" alt="Símbolo The Taimo's" /><div><strong>The Taimo's App</strong><span>by Jasvania & Layton</span></div></div>
-      <button className="icon-btn close-menu" onClick={() => setOpen(false)}><X size={20} /></button>
+      <button className="icon-btn close-menu" aria-label="Fechar menu" onClick={() => setOpen(false)}><X size={20} /></button>
       <nav>{nav.map(([to, label, Icon]) =>
         <NavLink key={to} to={to} onClick={() => setOpen(false)}><Icon size={19} /><span>{label}</span></NavLink>)}</nav>
       <div className="sidebar-footer">
         <div className="avatar">{session?.user.email?.slice(0, 2).toUpperCase()}</div>
         <div className="user-label"><strong>{session?.user.user_metadata.name ?? 'Família'}</strong><span>{session?.user.email}</span></div>
-        <button className="icon-btn" title="Terminar sessão" onClick={() => supabase.auth.signOut()}><LogOut size={18} /></button>
+        <button className="icon-btn" aria-label="Terminar sessão" title="Terminar sessão" onClick={() => supabase.auth.signOut()}><LogOut size={18} /></button>
       </div>
     </aside>
     <main className="main">
-      <header className="mobile-header"><div className="mobile-brand"><img className="brand-mark" src="/app-icon-192.png" alt="Símbolo The Taimo's" /><span><strong>The Taimo's App</strong><small>by Jasvania & Layton</small></span></div><button className="icon-btn" onClick={() => setOpen(true)}><Menu /></button></header>
+      <header className="mobile-header"><div className="mobile-brand"><img className="brand-mark" src="/app-icon-192.png" alt="Símbolo The Taimo's" /><span><strong>The Taimo's App</strong><small>by Jasvania & Layton</small></span></div><button className="icon-btn" aria-label="Abrir menu" onClick={() => setOpen(true)}><Menu /></button></header>
       <Outlet />
       <nav className="bottom-nav">
         <NavLink to="/dashboard"><Home /><span>Início</span></NavLink>
@@ -45,6 +45,6 @@ export default function Layout() {
         <button onClick={() => setOpen(true)}><MoreHorizontal /><span>Mais</span></button>
       </nav>
     </main>
-    {open && <button className="backdrop" onClick={() => setOpen(false)} />}
+    {open && <button className="backdrop" aria-label="Fechar menu" onClick={() => setOpen(false)} />}
   </div>;
 }

@@ -91,6 +91,7 @@ export class FamilyLifeController {
   }
   @Post('events')
   async createEvent(@CurrentUser() user: AuthenticatedUser, @Body() dto: FamilyEventDto) {
+    this.validateEventDates(dto);
     return this.prisma.familyEvent.create({
       data: { ...dto, householdId: await this.context.getHouseholdId(user.id) },
     });
@@ -99,6 +100,7 @@ export class FamilyLifeController {
   async updateEvent(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: FamilyEventDto) {
     const householdId = await this.context.getHouseholdId(user.id);
     await this.ensure('familyEvent', id, householdId);
+    this.validateEventDates(dto);
     return this.prisma.familyEvent.update({ where: { id }, data: dto });
   }
   @Delete('events/:id')
@@ -111,7 +113,20 @@ export class FamilyLifeController {
       throw new BadRequestException('Responsável inválido.');
   }
   private async ensure(model: 'reminder' | 'shoppingItem' | 'familyEvent', id: string, householdId: string) {
-    const found = await (this.prisma[model] as any).findFirst({ where: { id, householdId } });
+    const found = model === 'reminder'
+      ? await this.prisma.reminder.findFirst({ where: { id, householdId } })
+      : model === 'shoppingItem'
+        ? await this.prisma.shoppingItem.findFirst({ where: { id, householdId } })
+        : await this.prisma.familyEvent.findFirst({ where: { id, householdId } });
     if (!found) throw new BadRequestException('Item não encontrado.');
+  }
+
+  private validateEventDates(dto: FamilyEventDto) {
+    if (dto.endsAt && dto.endsAt < dto.startsAt) {
+      throw new BadRequestException('A data de fim não pode ser anterior ao início.');
+    }
+    if (dto.reminderAt && dto.reminderAt > dto.startsAt) {
+      throw new BadRequestException('O lembrete deve ser anterior ao início do programa.');
+    }
   }
 }

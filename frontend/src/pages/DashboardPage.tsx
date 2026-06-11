@@ -5,13 +5,15 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { useApi } from '../hooks';
 import { currentMonth, money } from '../lib';
 import { Report } from '../types';
-import { MonthFilter, PageHeader, Spinner, SummaryCard } from '../components/UI';
+import { ErrorState, MonthFilter, PageHeader, Spinner, SummaryCard } from '../components/UI';
 
 const empty: Report = { income: 0, expenses: 0, balance: 0, overallBalance: 0, saved: 0, totalSaved: 0, emergencies: 0, spentPercentage: 0, topCategories: [], alerts: [] };
 export default function DashboardPage() {
   const [month, setMonth] = useState(currentMonth());
-  const { data, loading } = useApi<Report>(`/reports/monthly?month=${month}`, empty);
-  const { data: life } = useApi<{ reminders: any[]; shopping: any[]; events: any[] }>('/family-life/overview', { reminders: [], shopping: [], events: [] });
+  const report = useApi<Report>(`/reports/monthly?month=${month}`, empty);
+  const familyLife = useApi<{ reminders: { title: string }[]; shopping: { name: string }[]; events: { title: string }[] }>('/family-life/overview', { reminders: [], shopping: [], events: [] });
+  const { data, loading } = report;
+  const life = familyLife.data;
   return <div className="page">
     <PageHeader title="Olá, Taimo's" subtitle="Tudo o que importa para a vossa casa, num só lugar." actions={<MonthFilter value={month} onChange={setMonth} />} />
     <section className="life-overview">
@@ -20,7 +22,7 @@ export default function DashboardPage() {
       <Link to="/programas" className="life-overview-card lavender"><div><CalendarDays /></div><span>Próximos programas</span><strong>{life.events.length}</strong><small>{life.events[0]?.title ?? 'Agenda livre'}</small></Link>
     </section>
     <div className="section-title"><div><span className="eyebrow">FINANÇAS DA CASA</span><h2>Resumo do mês</h2></div></div>
-    {loading ? <Spinner /> : <>
+    {report.error ? <ErrorState message={report.error} onRetry={report.reload} /> : loading ? <Spinner /> : <>
       <div className="summary-grid">
         <SummaryCard label="Entradas do mês" value={money(data.income)} tone="positive" icon={<ArrowUpRight />} />
         <SummaryCard label="Saídas do mês" value={money(data.expenses)} tone="negative" icon={<ArrowDownRight />} />

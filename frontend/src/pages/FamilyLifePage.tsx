@@ -2,7 +2,7 @@ import {
   Bell, CalendarDays, Check, Clock, MapPin, Plus, ShoppingBag, Store, Trash2, UserRound,
 } from 'lucide-react';
 import { FormEvent, useState } from 'react';
-import { Empty, Modal, PageHeader, Spinner } from '../components/UI';
+import { Empty, ErrorState, Modal, PageHeader, Spinner } from '../components/UI';
 import { useApi } from '../hooks';
 import { api, money, shortDate } from '../lib';
 import { Member } from '../types';
@@ -24,7 +24,8 @@ const priorityLabel: Record<string,string> = { LOW: 'Baixa', MEDIUM: 'Normal', H
 
 export default function FamilyLifePage({ kind }: { kind: Kind }) {
   const [open, setOpen] = useState(false);
-  const { data, loading, reload } = useApi<Item[]>(`/family-life/${kind}`, []);
+  const items = useApi<Item[]>(`/family-life/${kind}`, []);
+  const { data, loading, reload } = items;
   const { data: members } = useApi<Member[]>('/users', []);
   const meta = config[kind], Icon = meta.icon;
   async function toggle(item: Item) {
@@ -35,9 +36,9 @@ export default function FamilyLifePage({ kind }: { kind: Kind }) {
   return <div className="page family-page">
     <PageHeader title={meta.title} subtitle={meta.subtitle} actions={<button className="btn primary" onClick={() => setOpen(true)}><Plus /> {meta.button}</button>} />
     <div className="family-summary"><div className="family-summary-icon"><Icon /></div><div><strong>{data.filter((x) => x.status !== 'COMPLETED').length}</strong><span>itens ativos</span></div><div><strong>{data.filter((x) => x.status === 'COMPLETED').length}</strong><span>concluídos</span></div></div>
-    {loading ? <Spinner /> : data.length ? <section className="life-list">{data.map((item) =>
+    {items.error ? <ErrorState message={items.error} onRetry={reload} /> : loading ? <Spinner /> : data.length ? <section className="life-list">{data.map((item) =>
       <article className={`life-card ${item.status === 'COMPLETED' ? 'done' : ''}`} key={item.id}>
-        <button className="life-check" onClick={() => toggle(item)}>{item.status === 'COMPLETED' && <Check />}</button>
+        <button className="life-check" aria-label={item.status === 'COMPLETED' ? 'Marcar como pendente' : 'Marcar como concluído'} onClick={() => toggle(item)}>{item.status === 'COMPLETED' && <Check />}</button>
         <div className="life-content">
           <div className="life-title"><strong>{item.title ?? item.name}</strong>{item.priority && <span className={`priority ${item.priority.toLowerCase()}`}>{priorityLabel[item.priority]}</span>}</div>
           {item.description && <p>{item.description}</p>}
@@ -49,7 +50,7 @@ export default function FamilyLifePage({ kind }: { kind: Kind }) {
             {item.assignee && <span><UserRound /> {item.assignee.name}</span>}
           </div>
         </div>
-        <div className="life-side">{item.estimatedPrice && <strong>{money(item.estimatedPrice)}</strong>}<span className={`badge ${item.status.toLowerCase()}`}>{statusLabel[item.status]}</span><button className="delete-btn" onClick={async () => { if (confirm('Apagar este item?')) { await api(`/family-life/${kind}/${item.id}`, { method: 'DELETE' }); reload(); } }}><Trash2 /></button></div>
+        <div className="life-side">{item.estimatedPrice && <strong>{money(item.estimatedPrice)}</strong>}<span className={`badge ${item.status.toLowerCase()}`}>{statusLabel[item.status]}</span><button className="delete-btn" aria-label={`Apagar ${item.title ?? item.name}`} onClick={async () => { if (confirm('Apagar este item?')) { await api(`/family-life/${kind}/${item.id}`, { method: 'DELETE' }); reload(); } }}><Trash2 /></button></div>
       </article>)}</section> : <Empty title={`Sem ${meta.title.toLowerCase()}`} text={`Use “${meta.button}” para começar.`} />}
     {open && <CreateLifeModal kind={kind} members={members} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); reload(); }} />}
   </div>;

@@ -65,5 +65,11 @@ export class TransactionsController {
       this.prisma.householdMember.findFirst({ where: { userId: dto.responsibleId, householdId } }),
     ]);
     if (!category || !member) throw new BadRequestException('Categoria ou responsável inválido.');
+    if (category.type !== dto.type) {
+      throw new BadRequestException('A categoria não corresponde ao tipo do movimento.');
+    }
+    if (category.nature && category.nature !== dto.nature) {
+      throw new BadRequestException('A natureza do movimento não corresponde à categoria.');
+    }
   }
 }
