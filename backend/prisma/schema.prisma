@@ -66,32 +66,34 @@ enum Priority {
 }
 
 model User {
-  id            String            @id @db.Uuid
-  email         String            @unique
-  name          String
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  memberships   HouseholdMember[]
-  transactions  Transaction[]     @relation("ResponsibleTransactions")
-  reminders     Reminder[]        @relation("ReminderAssignee")
-  shoppingItems ShoppingItem[]    @relation("ShoppingAssignee")
+  id                    String                 @id @db.Uuid
+  email                 String                 @unique
+  name                  String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  memberships           HouseholdMember[]
+  transactions          Transaction[]          @relation("ResponsibleTransactions")
+  recurringTransactions RecurringTransaction[] @relation("ResponsibleRecurringTransactions")
+  reminders             Reminder[]             @relation("ReminderAssignee")
+  shoppingItems         ShoppingItem[]         @relation("ShoppingAssignee")
 }
 
 model Household {
-  id            String            @id @default(uuid()) @db.Uuid
-  name          String
-  inviteCode    String            @unique
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  members       HouseholdMember[]
-  categories    Category[]
-  transactions  Transaction[]
-  fixedExpenses FixedExpense[]
-  budgets       MonthlyBudget[]
-  savingsGoals  SavingsGoal[]
-  reminders     Reminder[]
-  shoppingItems ShoppingItem[]
-  familyEvents  FamilyEvent[]
+  id                    String                 @id @default(uuid()) @db.Uuid
+  name                  String
+  inviteCode            String                 @unique
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  members               HouseholdMember[]
+  categories            Category[]
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+  fixedExpenses         FixedExpense[]
+  budgets               MonthlyBudget[]
+  savingsGoals          SavingsGoal[]
+  reminders             Reminder[]
+  shoppingItems         ShoppingItem[]
+  familyEvents          FamilyEvent[]
 }
 
 model HouseholdMember {
@@ -108,43 +110,73 @@ model HouseholdMember {
 }
 
 model Category {
-  id            String             @id @default(uuid()) @db.Uuid
-  householdId   String             @db.Uuid
-  name          String
-  type          TransactionType
-  nature        TransactionNature?
-  color         String             @default("#64748b")
-  isDefault     Boolean            @default(false)
-  createdAt     DateTime           @default(now())
-  household     Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  transactions  Transaction[]
-  fixedExpenses FixedExpense[]
-  budgets       MonthlyBudget[]
+  id                    String                 @id @default(uuid()) @db.Uuid
+  householdId           String                 @db.Uuid
+  name                  String
+  type                  TransactionType
+  nature                TransactionNature?
+  color                 String                 @default("#64748b")
+  isDefault             Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  household             Household              @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+  fixedExpenses         FixedExpense[]
+  budgets               MonthlyBudget[]
 
   @@index([householdId, name, type, nature])
   @@index([householdId])
 }
 
 model Transaction {
-  id            String            @id @default(uuid()) @db.Uuid
-  householdId   String            @db.Uuid
-  responsibleId String            @db.Uuid
-  categoryId    String            @db.Uuid
-  date          DateTime
-  type          TransactionType
-  subcategory   String?
-  description   String
-  amount        Decimal           @db.Decimal(14, 2)
-  paymentMethod PaymentMethod
-  nature        TransactionNature
-  notes         String?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  household     Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  responsible   User              @relation("ResponsibleTransactions", fields: [responsibleId], references: [id])
-  category      Category          @relation(fields: [categoryId], references: [id])
+  id                     String                @id @default(uuid()) @db.Uuid
+  householdId            String                @db.Uuid
+  responsibleId          String                @db.Uuid
+  categoryId             String                @db.Uuid
+  date                   DateTime
+  type                   TransactionType
+  subcategory            String?
+  description            String
+  amount                 Decimal               @db.Decimal(14, 2)
+  paymentMethod          PaymentMethod
+  nature                 TransactionNature
+  notes                  String?
+  recurringTransactionId String?               @db.Uuid
+  recurringMonth         DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  household              Household             @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  responsible            User                  @relation("ResponsibleTransactions", fields: [responsibleId], references: [id])
+  category               Category              @relation(fields: [categoryId], references: [id])
+  recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id], onDelete: SetNull)
 
+  @@unique([recurringTransactionId, recurringMonth])
   @@index([householdId, date])
+  @@index([categoryId])
+}
+
+model RecurringTransaction {
+  id            String          @id @default(uuid()) @db.Uuid
+  householdId   String          @db.Uuid
+  responsibleId String          @db.Uuid
+  categoryId    String          @db.Uuid
+  type          TransactionType
+  name          String
+  amount        Decimal         @db.Decimal(14, 2)
+  dayOfMonth    Int
+  paymentMethod PaymentMethod
+  notes         String?
+  startMonth    DateTime
+  endMonth      DateTime?
+  active        Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  household     Household       @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  responsible   User            @relation("ResponsibleRecurringTransactions", fields: [responsibleId], references: [id])
+  category      Category        @relation(fields: [categoryId], references: [id])
+  transactions  Transaction[]
+
+  @@index([householdId, active])
   @@index([categoryId])
 }
 

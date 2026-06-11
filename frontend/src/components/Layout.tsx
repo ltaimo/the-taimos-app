@@ -13,7 +13,7 @@ const nav = [
   ['/compras', 'Compras e necessidades', ShoppingBag],
   ['/programas', 'Programas', CalendarDays],
   ['/movimentos', 'Movimentos', WalletCards],
-  ['/despesas-fixas', 'Despesas fixas', ReceiptText],
+  ['/despesas-fixas', 'Fixos mensais', ReceiptText],
   ['/orcamento', 'Orçamento', SlidersHorizontal],
   ['/poupanca', 'Poupança', Goal],
   ['/relatorios', 'Relatórios', BarChart3],

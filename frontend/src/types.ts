@@ -4,6 +4,7 @@ export type Transaction = {
   id: string; date: string; type: string; categoryId: string; category: Category;
   subcategory?: string; description: string; amount: string; responsibleId: string;
   responsible: Member; paymentMethod: string; nature: string; notes?: string;
+  recurringTransactionId?: string;
 };
 export type Report = {
   income: number; expenses: number; balance: number; overallBalance: number; saved: number;

@@ -6,10 +6,15 @@ import { CurrentUser, AuthenticatedUser } from '../common/current-user.decorator
 import { HouseholdContextService } from '../common/household.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionDto } from './dto/transaction.dto';
+import { RecurringTransactionsService } from '../recurring-transactions/recurring-transactions.service';
 
 @Controller('transactions')
 export class TransactionsController {
-  constructor(private readonly prisma: PrismaService, private readonly context: HouseholdContextService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly context: HouseholdContextService,
+    private readonly recurring: RecurringTransactionsService,
+  ) {}
 
   @Get()
   async list(
@@ -24,6 +29,7 @@ export class TransactionsController {
     const where: Prisma.TransactionWhereInput = { householdId };
     if (month) {
       const start = new Date(`${month}-01T00:00:00.000Z`);
+      await this.recurring.ensureThroughMonth(householdId, start);
       where.date = { gte: start, lt: new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1)) };
     }
     if (type) where.type = type;
@@ -50,12 +56,19 @@ export class TransactionsController {
     await this.validateRelations(householdId, dto);
     const found = await this.prisma.transaction.findFirst({ where: { id, householdId } });
     if (!found) throw new BadRequestException('Movimento não encontrado.');
+    if (found.recurringTransactionId) {
+      throw new BadRequestException('Edite este movimento na área de Fixos mensais.');
+    }
     return this.prisma.transaction.update({ where: { id }, data: dto });
   }
 
   @Delete(':id')
   async remove(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     const householdId = await this.context.getHouseholdId(user.id);
+    const found = await this.prisma.transaction.findFirst({ where: { id, householdId } });
+    if (found?.recurringTransactionId) {
+      throw new BadRequestException('Pause ou apague este movimento na área de Fixos mensais.');
+    }
     return this.prisma.transaction.deleteMany({ where: { id, householdId } });
   }
 

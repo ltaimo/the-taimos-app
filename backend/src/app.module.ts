@@ -15,13 +15,14 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { UsersModule } from './users/users.module';
 import { HealthController } from './health.controller';
 import { FamilyLifeModule } from './family-life/family-life.module';
+import { RecurringTransactionsModule } from './recurring-transactions/recurring-transactions.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule, CommonModule, AuthModule, UsersModule, HouseholdsModule,
     TransactionsModule, CategoriesModule, FixedExpensesModule, BudgetsModule,
-    SavingsGoalsModule, ReportsModule, FamilyLifeModule,
+    SavingsGoalsModule, ReportsModule, FamilyLifeModule, RecurringTransactionsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: SupabaseAuthGuard }],
   controllers: [HealthController],

@@ -138,5 +138,18 @@ VITE_SUPABASE_ANON_KEY=SUA_CHAVE_ANON
 npm run dev       # frontend e backend
 npm run build     # build completo
 npm run lint      # lint completo
+npm test          # testes automatizados
 npm run db:seed   # categorias padrão
 ```
+
+## Fixos mensais
+
+Entradas e despesas fixas são configuradas uma única vez em **Fixos mensais**.
+O backend cria automaticamente um movimento por mês para cada registo ativo,
+incluindo salários, renda de casa, internet, escola e outros compromissos.
+
+- O dia 29, 30 ou 31 é ajustado ao último dia dos meses mais curtos.
+- Editar um registo atualiza o mês corrente e os meses seguintes.
+- Pausar ou apagar remove a geração do mês corrente em diante.
+- Movimentos de meses anteriores são preservados como histórico.
+- A combinação do registo e do mês é única na base de dados, evitando duplicados.
